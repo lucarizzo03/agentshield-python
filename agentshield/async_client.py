@@ -101,7 +101,7 @@ class AsyncAgentShield:
     async def spend_request(self, request: SpendRequest) -> SpendResponse:
         if request.idempotency_key is None:
             request = request.model_copy(update={"idempotency_key": f"sdk_{token_urlsafe(12)}"})
-        payload = json.loads(request.model_dump_json(exclude_none=False))
+        payload = json.loads(request.model_dump_json(exclude_none=True))
         data = await self._post("/v1/spend-request", payload)
         return SpendResponse.model_validate(data)
 

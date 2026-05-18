@@ -83,6 +83,38 @@ def test_spend_request_safe():
 
 
 @respx.mock
+def test_spend_request_omits_none_fields():
+    def _handler(request):
+        body = json.loads(request.content.decode("utf-8"))
+        assert "dev_slm_preset" not in body
+        return Response(
+            200,
+            json={
+                "request_id": "req_omit_none",
+                "status": "APPROVED_EXECUTED",
+                "verdict": "SAFE",
+            },
+        )
+
+    respx.post(f"{BASE_URL}/v1/spend-request").mock(side_effect=_handler)
+
+    with sdk.AgentShield(AGENT_ID, HMAC_SECRET, base_url=BASE_URL) as client:
+        result = client.spend_request(
+            sdk.SpendRequest(
+                agent_id=AGENT_ID,
+                declared_goal="Buy office supplies",
+                amount_cents=4900,
+                currency="USD",
+                vendor_url_or_name="staples.com",
+                item_description="Printer paper",
+                asset_type="FIAT",
+            )
+        )
+
+    assert result.request_id == "req_omit_none"
+
+
+@respx.mock
 def test_spend_request_pending_hitl():
     response_body = {
         "request_id": "req_hitl001",
