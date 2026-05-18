@@ -1,3 +1,4 @@
+import os
 import json
 from secrets import token_urlsafe
 from typing import Any
@@ -21,6 +22,10 @@ from agentshield._models import (
     SpendStatusResponse,
 )
 
+DEFAULT_BASE_URL = os.getenv(
+    "AGENTSHIELD_BASE_URL", "https://agentshieldv2-backend-production.up.railway.app"
+)
+
 
 class AgentShield:
     def __init__(
@@ -28,7 +33,7 @@ class AgentShield:
         agent_id: str,
         hmac_secret: str,
         *,
-        base_url: str = "http://localhost:8000",
+        base_url: str = DEFAULT_BASE_URL,
         timeout: float = 30.0,
     ) -> None:
         self.agent_id = agent_id
@@ -74,19 +79,20 @@ class AgentShield:
 
     @staticmethod
     def _handle(resp: httpx.Response) -> dict:
-        if resp.status_code in (401, 403):
-            detail = resp.json().get("detail", resp.text)
-            raise AgentShieldAuthError(resp.status_code, detail)
         if resp.status_code == 403:
-            data = resp.json()
+            data = resp.json() if resp.content else {}
             raise AgentShieldBlockedError(
                 resp.status_code,
                 data.get("detail", "blocked"),
                 data.get("block_code", "POLICY_HARD_DENY"),
                 data.get("reasons", []),
             )
+        if resp.status_code == 401:
+            data = resp.json() if resp.content else {}
+            detail = data.get("detail", resp.text)
+            raise AgentShieldAuthError(resp.status_code, detail)
         if resp.status_code >= 400:
-            detail = resp.json().get("detail", resp.text) if resp.content else resp.text
+            detail = (resp.json() if resp.content else {}).get("detail", resp.text)
             raise AgentShieldAPIError(resp.status_code, detail)
         return resp.json()
 
@@ -144,7 +150,7 @@ class AgentShieldAdmin:
         self,
         bearer_token: str,
         *,
-        base_url: str = "http://localhost:8000",
+        base_url: str = DEFAULT_BASE_URL,
         timeout: float = 30.0,
     ) -> None:
         self._http = httpx.Client(

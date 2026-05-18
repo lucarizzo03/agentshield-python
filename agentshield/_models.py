@@ -39,12 +39,12 @@ class HitlState(BaseModel):
 
 
 class SpendResponse(BaseModel):
+    verdict: Literal["SAFE", "SUSPICIOUS", "MALICIOUS"]
     request_id: str
     status: str
-    verdict: str
     approved_amount_cents: int | None = None
     currency: str | None = None
-    reasons: list[str] = []
+    reasons: list[str] = Field(default_factory=list)
     hitl: HitlState | None = None
     next_action: str | None = None
     block_code: str | None = None
@@ -63,9 +63,9 @@ class SpendResponse(BaseModel):
 
 
 class SpendStatusResponse(BaseModel):
+    verdict: Literal["SAFE", "SUSPICIOUS", "MALICIOUS"]
     request_id: str
     status: str
-    verdict: str
     decision: str | None = None
     resolved: bool = False
     expires_at: datetime | None = None

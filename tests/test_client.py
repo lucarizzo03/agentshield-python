@@ -40,6 +40,16 @@ def test_sign_request_canonical_format():
     assert headers["x-signature"] == expected_sig
 
 
+def test_v2_top_level_exports():
+    assert sdk.AgentShield is not None
+    assert sdk.AsyncAgentShield is not None
+    assert sdk.SpendRequest is not None
+    assert sdk.SpendResponse is not None
+    assert sdk.AgentShieldBlockedError is not None
+    assert sdk.AgentShieldAuthError is not None
+    assert sdk.AgentShieldAPIError is not None
+
+
 # ── Sync client ────────────────────────────────────────────────────────────────
 
 @respx.mock
@@ -120,7 +130,7 @@ def test_spend_request_blocked_raises():
     respx.post(f"{BASE_URL}/v1/spend-request").mock(return_value=Response(403, json=response_body))
 
     with sdk.AgentShield(AGENT_ID, HMAC_SECRET, base_url=BASE_URL) as client:
-        with pytest.raises(sdk.AgentShieldAuthError):
+        with pytest.raises(sdk.AgentShieldBlockedError):
             client.spend_request(
                 sdk.SpendRequest(
                     agent_id=AGENT_ID,
@@ -152,6 +162,17 @@ def test_get_spend_status():
 
     assert result.resolved is True
     assert result.decision == "APPROVE"
+
+
+def test_verdict_field_is_typed_literal_values():
+    response = sdk.SpendResponse.model_validate(
+        {
+            "request_id": "req_abc123",
+            "status": "APPROVED_EXECUTED",
+            "verdict": "SAFE",
+        }
+    )
+    assert response.verdict == "SAFE"
 
 
 @respx.mock
