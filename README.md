@@ -7,10 +7,15 @@ Python SDK for [AgentShield](https://github.com/your-org/agentshieldv2) — a sp
 ## Installation
 
 ```bash
-pip install agentshield
+pip install agentshield-pythonv2
 ```
 
 Requires Python 3.11+.
+Import path remains `agentshield`:
+
+```python
+from agentshield import AgentShield, AgentShieldBlockedError, SpendRequest
+```
 
 ---
 
@@ -61,7 +66,7 @@ Store both securely — you pass them to every client instantiation.
 ## Quick Start
 
 ```python
-from agentshield import AgentShield, SpendRequest
+from agentshield import AgentShield, AgentShieldBlockedError, SpendRequest
 
 client = AgentShield(
     agent_id="agt_...",
@@ -69,22 +74,23 @@ client = AgentShield(
     base_url="https://your-agentshield-instance.com",
 )
 
-result = client.spend_request(SpendRequest(
-    agent_id="agt_...",
-    declared_goal="Book a flight from JFK to LAX for the team offsite",
-    amount_cents=25000,
-    currency="USD",
-    vendor_url_or_name="delta.com",
-    item_description="Economy seat JFK-LAX, Oct 12",
-    asset_type="FIAT",
-))
+try:
+    result = client.spend_request(SpendRequest(
+        agent_id="agt_...",
+        declared_goal="Book a flight from JFK to LAX for the team offsite",
+        amount_cents=25000,
+        currency="USD",
+        vendor_url_or_name="delta.com",
+        item_description="Economy seat JFK-LAX, Oct 12",
+        asset_type="FIAT",
+    ))
 
-if result.approved:
-    print(f"Approved: ${result.approved_amount_cents / 100:.2f}")
-elif result.pending_hitl:
-    print(f"Waiting for human review — poll {result.request_id}")
-elif result.blocked:
-    print(f"Blocked: {result.reasons}")
+    if result.approved:
+        print(f"Approved: ${result.approved_amount_cents / 100:.2f}")
+    elif result.pending_hitl:
+        print(f"Waiting for human review — poll {result.request_id}")
+except AgentShieldBlockedError as e:
+    print(f"Blocked: {e.block_code} {e.reasons}")
 ```
 
 ---
